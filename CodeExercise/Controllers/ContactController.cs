@@ -39,7 +39,58 @@ public class ContactController : ControllerBase
          * Use contactService.CreateContacts method to create the contacts. Return the result.
          */
 
-        return Ok();
+        try
+        {
+            // Split the input by lines and remove any leading/trailing whitespace
+            var lines = commaSeparatedInput.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None).Select(line => line.Trim());
+
+            // Get the column names from the first line of input
+            var columns = lines.First().Split(',').Select(column => column.Trim());
+
+            // Create a list to hold the contacts
+            var contacts = new List<CreateContactDto>();
+
+            // Loop through the remaining lines and create a contact for each one
+            foreach (var line in lines.Skip(1))
+            {
+                var values = line.Split(',').Select(value => value.Trim());
+
+                //// Check if the values are valid
+                if (values?.Count() != 3 || values.Any(value => string.IsNullOrEmpty(value)))
+                {
+                    throw new ValidationException("Contact data is incorrect");
+                }
+
+                // Create a new contact and add it to the list
+                var contact = new CreateContactDto
+                {
+                    FirstName = values.ElementAt(0),
+                    LastName = values.ElementAt(1),
+                    Email = values.ElementAt(2)
+                };
+                contacts.Add(contact);
+            }
+
+            var result = await contactService.CreateContacts(contacts);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Could not create contact");
+            return BadRequest();
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="lastName"></param>
+    /// <returns></returns>
+    [HttpGet("")]
+    public async Task<IActionResult> GetContactsByLastName(string lastName)
+    {
+        var list = await contactService.GetContactsByLastName(lastName);
+        return Ok(list);
     }
 
 }
